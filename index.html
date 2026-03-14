@@ -2,146 +2,261 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>З Днем Батька</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Goblin Empire: Evolution</title>
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: linear-gradient(to top, #000000, #1a1a2e);
-            height: 100%;
-        }
+        body { margin: 0; background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; user-select: none; overflow: hidden; touch-action: none; }
+        .ui-header { height: 50px; background: #2c3e50; display: flex; justify-content: space-around; align-items: center; border-bottom: 3px solid #f1c40f; }
+        .tabs { display: flex; height: 50px; background: #34495e; }
+        .tab-btn { flex: 1; border: none; background: #34495e; color: #bdc3c7; font-weight: bold; font-size: 14px; }
+        .tab-btn.active { background: #27ae60; color: white; border-top: 3px solid #fff; }
+        
+        #mine-page, #city-page { width: 100vw; height: calc(100vh - 100px); position: relative; display: none; }
+        .active-page { display: block !important; }
 
-        .center-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 6vw;
-            color: #ffffff;
-            text-align: center;
-            font-family: 'Verdana', sans-serif;
-            text-shadow: 2px 2px 8px white;
-            z-index: 10;
-        }
+        canvas { display: block; background: #1e272e; width: 100%; height: 100%; }
+        .controls { position: absolute; bottom: 15px; width: 100%; display: flex; justify-content: center; gap: 10px; pointer-events: none; }
+        .btn { pointer-events: auto; padding: 12px 18px; border: none; color: white; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .buy-btn { background: #e67e22; box-shadow: 0 4px #d35400; }
+        
+        .village-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px; background: #2ecc71; border-radius: 15px; margin: 10px; }
+        .plot { aspect-ratio: 1/1; background: #27ae60; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 24px; border: 2px solid #1e8449; position: relative; }
+        .lvl-badge { position: absolute; top: 2px; right: 2px; background: #f1c40f; color: black; font-size: 10px; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
 
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+        #build-menu { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #34495e; padding: 20px; border-radius: 15px; border: 3px solid #f1c40f;
+            display: none; z-index: 100; width: 260px; box-shadow: 0 0 100px black; text-align: center;
         }
-
-        @media (max-width: 600px) {
-            .center-text {
-                font-size: 8vw;
-            }
-        }
+        .build-opt { background: #2c3e50; padding: 12px; margin: 8px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .build-opt:hover { background: #3e5871; }
     </style>
 </head>
 <body>
-    <div class="center-text">З Днем Батька!</div>
-    <canvas id="fireworks"></canvas>
 
-    <script>
-        const canvas = document.getElementById('fireworks');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+<div class="ui-header">
+    <div style="font-size:18px; color:#f1c40f; font-weight:bold;">💰 <span id="gold">200</span></div>
+    <div style="font-size:14px; color:#3498db;">⚒️ <span id="speed-bonus">100</span>% швидк.</div>
+    <div style="color:#ecf0f1; font-weight:bold;">Lvl: <span id="level-num">1</span></div>
+</div>
 
-        class Firework {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = canvas.height;
-                this.targetY = Math.random() * canvas.height / 2;
-                this.speed = 5;
-                this.exploded = false;
-                this.particles = [];
-                this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-            }
+<div class="tabs">
+    <button id="t-mine" class="tab-btn active" onclick="showPage('mine')">⚒️ ШАХТА</button>
+    <button id="t-city" class="tab-btn" onclick="showPage('city')">🏘️ МІСТО</button>
+</div>
 
-            update() {
-                if (!this.exploded) {
-                    this.y -= this.speed;
-                    if (this.y <= this.targetY) {
-                        this.exploded = true;
-                        for (let i = 0; i < 100; i++) {
-                            this.particles.push(new Particle(this.x, this.y, this.color));
-                        }
-                    }
-                } else {
-                    this.particles.forEach(p => p.update());
-                    this.particles = this.particles.filter(p => p.life > 0);
-                }
-            }
+<div id="mine-page" class="active-page">
+    <canvas id="gameCanvas"></canvas>
+    <div class="controls"><button onclick="buyGoblin()" class="btn buy-btn">🧌 Наняти (+50💰)</button></div>
+</div>
 
-            draw() {
-                if (!this.exploded) {
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
-                    ctx.fillStyle = this.color;
-                    ctx.fill();
-                } else {
-                    this.particles.forEach(p => p.draw());
-                }
-            }
+<div id="city-page">
+    <div class="village-grid" id="village"></div>
+    <div id="build-menu" onclick="event.stopPropagation()">
+        <h3 id="menu-title" style="margin:0 0 10px 0">Будівництво</h3>
+        <div id="options-container"></div>
+        <button onclick="closeMenu()" style="width:100%; margin-top:10px; background:#e74c3c; border:none; color:white; padding:8px; border-radius:5px;">Закрити</button>
+    </div>
+</div>
 
-            isDone() {
-                return this.exploded && this.particles.length === 0;
-            }
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gold = 200, level = 1, map = [], goblins = [], draggedG = null, selectedPlot = null;
+    let villageData = Array(16).fill(null).map(() => ({type:'empty', icon:'🟫', lvl: 0}));
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 100; }
+    window.addEventListener('resize', resize); resize();
+
+    function formatTime(s) {
+        if (s < 60) return s.toFixed(1) + "с";
+        let m = Math.floor(s / 60);
+        return m + "хв " + Math.floor(s % 60) + "с";
+    }
+
+    function save() {
+        const data = { gold, level, goblins: goblins.map(g=>({x:g.x, y:g.y, lvl:g.lvl})), villageData };
+        localStorage.setItem('goblin_tycoon_v4', JSON.stringify(data));
+    }
+
+    function load() {
+        const s = localStorage.getItem('goblin_tycoon_v4');
+        if(s) {
+            const d = JSON.parse(s);
+            gold = d.gold; level = d.level; villageData = d.villageData;
+            goblins = d.goblins.map(g => new Goblin(g.x, g.y, g.lvl));
         }
+        updateStats();
+    }
 
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.angle = Math.random() * 2 * Math.PI;
-                this.speed = Math.random() * 4 + 1;
-                this.radius = Math.random() * 2 + 1;
-                this.life = 80;
-                this.color = color;
-            }
+    // --- БОНУСИ МІСТА ---
+    function getSpeedBonus() {
+        let forests = villageData.filter(p => p.type === 'forest');
+        let totalLvl = forests.reduce((sum, p) => sum + p.lvl, 0);
+        return 1 + (totalLvl * 0.1); // +10% за кожен рівень лісу
+    }
 
-            update() {
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed;
-                this.life--;
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-            }
+    // Пасивний дохід від городів
+    setInterval(() => {
+        let gardens = villageData.filter(p => p.type === 'garden');
+        let income = gardens.reduce((sum, p) => sum + (p.lvl * 5), 0);
+        if (income > 0) {
+            gold += income;
+            updateStats();
         }
+    }, 10000); // Кожні 10 секунд
 
-        let fireworks = [];
+    // --- МЕНЮ МІСТА ---
+    function showPage(p) {
+        document.getElementById('mine-page').className = p==='mine'?'active-page':'';
+        document.getElementById('city-page').className = p==='city'?'active-page':'';
+        document.getElementById('t-mine').className = 'tab-btn ' + (p==='mine'?'active':'');
+        document.getElementById('t-city').className = 'tab-btn ' + (p==='city'?'active':'');
+        if(p==='city') renderVillage();
+    }
 
-        function animate() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (Math.random() < 0.05) {
-                fireworks.push(new Firework());
-            }
-
-            fireworks.forEach(f => {
-                f.update();
-                f.draw();
-            });
-
-            fireworks = fireworks.filter(f => !f.isDone());
-
-            requestAnimationFrame(animate);
-        }
-
-        animate();
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+    function renderVillage() {
+        const v = document.getElementById('village'); v.innerHTML = '';
+        villageData.forEach((p, i) => {
+            const d = document.createElement('div'); 
+            d.className = 'plot'; 
+            d.innerHTML = p.icon + (p.lvl > 0 ? `<div class="lvl-badge">L${p.lvl}</div>` : '');
+            d.onclick = () => openBuildMenu(i);
+            v.appendChild(d);
         });
-    </script>
+    }
+
+    function openBuildMenu(index) {
+        selectedPlot = index;
+        const plot = villageData[index];
+        const menu = document.getElementById('build-menu');
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        
+        if (plot.type === 'empty') {
+            document.getElementById('menu-title').innerText = "Побудувати";
+            addOption(container, '🌲 Ліс', 200, () => confirmBuild('🌲', 200, 'forest', 1));
+            addOption(container, '🍅 Город', 150, () => confirmBuild('🍅', 150, 'garden', 1));
+        } else {
+            const upCost = plot.lvl * 300;
+            document.getElementById('menu-title').innerText = "Покращити";
+            addOption(container, `⬆️ Рівень ${plot.lvl + 1}`, upCost, () => confirmBuild(plot.icon, upCost, plot.type, plot.lvl + 1));
+        }
+        menu.style.display = 'block';
+    }
+
+    function addOption(parent, name, cost, action) {
+        const div = document.createElement('div');
+        div.className = 'build-opt';
+        div.innerHTML = `<span>${name}</span> <span>💰${cost}</span>`;
+        div.onclick = action;
+        parent.appendChild(div);
+    }
+
+    function confirmBuild(icon, cost, type, newLvl) {
+        if(gold >= cost) {
+            gold -= cost;
+            villageData[selectedPlot] = { type, icon, lvl: newLvl };
+            closeMenu(); renderVillage(); updateStats(); save();
+        } else alert("Недостатньо золота!");
+    }
+
+    function closeMenu() { document.getElementById('build-menu').style.display='none'; }
+
+    // --- ШАХТА ---
+    function initLevel() {
+        map = []; let hpMult = Math.pow(2, level - 1);
+        let cols = Math.floor(canvas.width / 85);
+        for (let i = 0; i < (cols * 5); i++) {
+            if (Math.random() < 0.7) {
+                let type = Math.random() > 0.85 ? 'gold' : 'rock';
+                let res = type === 'gold' ? ['🟡', 400, '#f1c40f', 200] : ['🪨', 100, '#95a5a6', 40];
+                map.push({ x: (i%cols)*85+10, y: Math.floor(i/cols)*75+20, hp: res[1]*hpMult, maxHp: res[1]*hpMult, icon: res[0], color: res[2], reward: res[3], active: true });
+            }
+        }
+        document.getElementById('level-num').innerText = level;
+    }
+
+    class Goblin {
+        constructor(x, y, lvl) { this.x = x; this.y = y; this.lvl = lvl; this.target = null; this.lastHit = Date.now(); this.jump = 0; }
+        update() {
+            if (this.isDragging) return;
+            if (this.target && this.target.active) {
+                let speedBase = 1000;
+                let actualSpeed = speedBase / getSpeedBonus(); // Чим більше бонус, тим менше затримка
+
+                if (Date.now() - this.lastHit >= actualSpeed) {
+                    this.target.hp -= Math.pow(2, this.lvl-1);
+                    this.lastHit = Date.now();
+                    this.jump = 10;
+                    if (this.target.hp <= 0) { 
+                        gold += this.target.reward * level;
+                        this.target.active = false; this.target = null;
+                        if(map.every(m=>!m.active)) { level++; initLevel(); }
+                        updateStats(); save();
+                    }
+                }
+            }
+            if (this.jump > 0) this.jump *= 0.8;
+        }
+        draw() {
+            let prog = Math.min((Date.now() - this.lastHit) / (1000 / getSpeedBonus()), 1);
+            ctx.save();
+            ctx.translate(this.x, this.y - this.jump);
+            ctx.font = "40px Arial"; ctx.textAlign = "center";
+            ctx.fillText("🧌", 0, 0);
+            ctx.fillStyle = "white"; ctx.font = "bold 11px Arial";
+            ctx.fillText("L" + this.lvl, 0, -42);
+            if (this.target) {
+                ctx.fillStyle = "#444"; ctx.fillRect(-20, -38, 40, 3);
+                ctx.fillStyle = "#fff"; ctx.fillRect(-20, -38, 40 * prog, 3);
+                let hits = Math.ceil(this.target.hp / Math.pow(2, this.lvl-1));
+                let time = hits * (1 / getSpeedBonus());
+                ctx.fillStyle = "#3498db"; ctx.fillText(formatTime(time), 0, 15);
+            }
+            ctx.restore();
+        }
+    }
+
+    // --- КЕРУВАННЯ ---
+    function getPos(e) {
+        let t = e.touches ? e.touches[0] : e;
+        let r = canvas.getBoundingClientRect();
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+    function start(e) { let p = getPos(e); draggedG = goblins.find(g => Math.hypot(g.x - p.x, g.y - p.y) < 40); if(draggedG) draggedG.isDragging = true; }
+    function move(e) { if(draggedG) { let p = getPos(e); draggedG.x = p.x; draggedG.y = p.y; if(e.touches) e.preventDefault(); } }
+    function end() {
+        if(draggedG) {
+            draggedG.isDragging = false;
+            let other = goblins.find(g => g !== draggedG && Math.hypot(g.x - draggedG.x, g.y - draggedG.y) < 40);
+            if(other && other.lvl === draggedG.lvl) { other.lvl++; goblins = goblins.filter(g => g !== draggedG); }
+            else { let b = map.find(m => m.active && draggedG.x > m.x && draggedG.x < m.x + 85 && draggedG.y < m.y + 75); if(b) draggedG.target = b; }
+            draggedG = null; save();
+        }
+    }
+
+    canvas.addEventListener('mousedown', start); window.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, {passive:false}); canvas.addEventListener('touchmove', move, {passive:false}); canvas.addEventListener('touchend', end);
+
+    function buyGoblin() { if(gold >= 50) { gold -= 50; goblins.push(new Goblin(canvas.width/2, canvas.height-50, 1)); updateStats(); save(); } }
+    function updateStats() { 
+        document.getElementById('gold').innerText = Math.floor(gold); 
+        document.getElementById('speed-bonus').innerText = Math.round(getSpeedBonus() * 100);
+    }
+
+    function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        map.forEach(m => { if(m.active) { 
+            ctx.font = "30px Arial"; ctx.fillText(m.icon, m.x+40, m.y+45); 
+            ctx.fillStyle = "#333"; ctx.fillRect(m.x+10, m.y+5, 60, 4);
+            ctx.fillStyle = m.color; ctx.fillRect(m.x+10, m.y+5, (m.hp/m.maxHp)*60, 4); 
+        }});
+        goblins.forEach(g => { g.update(); g.draw(); });
+        requestAnimationFrame(loop);
+    }
+
+    load(); if(map.length === 0) initLevel(); loop();
+</script>
 </body>
 </html>
